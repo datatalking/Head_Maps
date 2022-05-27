@@ -1,0 +1,101 @@
+---
+title: "DA410_Discussion7"
+output: Heat Map Analysis with PCA Correlation
+source https://towardsdatascience.com/how-to-run-r-scripts-in-jupyter-15527148d2a
+---
+```{md}
+One of my first jobs in tech was for a biotech firm who was digitizing hundreds of thousands of genes that would be expressed by what is called an Elissa Array. The most obvious customer was Childrends Hospital and Fred Hutch Cancer research, when you hear that a fly, or a plant or a frog has slim that has potential for cures thats the analysis the PhD people did. The team I was on was in charge of decoding good data, from bad and organizing the good to 98% accuracy before it could go into the database.
+
+It is very common in genomic data sets where we have tens of thousands of features(genes, DNA methylation regions), but only a handful of samples (genomic are expensive at least for now).
+
+I am going to use a microarray data set to illustrate PCA and MDS, and then show you how to do clustering in R and make pretty heatmaps. It is a pretty old microarray data set, but the skills can be applied to any other high-dimentional genomic data sets. It contains gene expression profile for different cancer types
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+install.packages("devtools")
+devtools::install_github("IRkernel/IRkernel")
+IRkernel::installspec()
+```
+
+```{r}
+install.packages("ISLR")
+library(ISLR)
+library(ggplot2)
+
+
+ncidat = t(NCI60$data)
+colnames(ncidat) = NCI60$labs
+
+dim(ncidat)
+```
+
+Type any R code in the chunk, for example:
+```{r}
+unique(colnames(ncidat))
+
+```
+```{r}
+ncidat[1:6,1:6]
+X = t(scale(t(ncidat),center=TRUE,scale=FALSE))
+
+```
+```{r}
+X = t(scale(t(ncidat),center=TRUE,scale=FALSE))
+```
+```{r}
+# we transpose X again for svd
+sv = svd(t(X))
+U = sv$u
+V = sv$v
+D = sv$d
+
+## in R calculate the rank of a matrix is by
+qr(t(X))$rank
+```
+```{r}
+length(D)
+min(D)
+```
+```{r}
+### Plotting PCA
+cols = as.numeric(as.factor(colnames(ncidat)))
+
+plot(U[,1],U[,2],type="n",xlab="PC1",ylab="PC2")
+text(U[,1],U[,2],colnames(X),col=cols)
+
+par(mfrow=c(1,1))
+Z = t(X)%*%V
+
+# plot PC1 vs PC2
+We can look as many PCs as we like, but we usually stop when the cumulative variance explained by PCs is over ~90% to ~95% of total variance.
+plot(Z[,1], Z[,2], type ="n", xlab="PC1", ylab="PC2")
+text(Z[,1], Z[,2], colnames(X), col=cols)
+```
+```{r}
+pc_dat<- data.frame(type = rownames(Z), PC1 = Z[,1], PC2= Z[,2])
+library(ggplot2)
+```
+```{r}
+pc_dat<- data.frame(type = rownames(Z), PC1 = Z[,1], PC2= Z[,2])
+```
+```{r}
+## get a gradient of colors for grey, green, red.
+## one can do better use other libraries such RcolorBrewer. see examples later.
+
+aa<- grep("grey",colors())
+bb<- grep("green",colors())
+cc<-  grep("red",colors())
+gcol2<- colors()[c(aa[1:30],bb[1:20],rep(cc,2))]
+
+## use the genes that drive the first PC1. This is the first major patter in the data
+k=1
+ord1<- order(abs(V[,k]),decreasing=TRUE)
+x1<- as.matrix(X[ord1[1:250],])
+heatmap(x1,col=gcol2, xla)
+```
+
